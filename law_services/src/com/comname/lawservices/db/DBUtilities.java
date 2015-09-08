@@ -7,8 +7,10 @@ import java.util.List;
 
 import com.comname.lawservices.core.Constants;
 import com.comname.lawservices.db.tables.ClientTable;
+import com.comname.lawservices.db.tables.LegalCaseTable;
 import com.comname.lawservices.db.tables.PartyTable;
 import com.comname.lawservices.models.Client;
+import com.comname.lawservices.models.LegalCase;
 import com.comname.lawservices.models.Party;
 
 /**
@@ -52,8 +54,7 @@ public class DBUtilities {
 		String update = "INSERT INTO " + PartyTable.TABLE_NAME + "(" + PartyTable.COLUMN_FIRST_NAME + ", " + PartyTable.COLUMN_MIDDLE_NAME + " , " + PartyTable.COLUMN_LAST_NAME 
 				+ ", " + PartyTable.COLUMN_PHONE + ", " + PartyTable.COLUMN_BIRTH_DATE + ", " + PartyTable.COLUMN_ADDRESS + ", " + PartyTable.COLUMN_EMAIL + ", " + PartyTable.COLUMN_NOTE + ") "
 				+ "VALUES (" + "\'" + firstName + "\'" + ", "  + "\'" + middleName + "\'" + ", " + "\'" + lastName + "\'" + ", " + phone + ", \'" + (new java.sql.Date(birthDate.getTime())) + "\', " +  "\'" + address + "\'" + ", " + "\'" + email + "\'" + ", " + "\'" + note + "\'" + ")";
-		
-		System.out.println(update);
+
 		driver.executeUpdate(update);
 	}
 	
@@ -61,6 +62,7 @@ public class DBUtilities {
 	 * Updates Party information in the party database
 	 * table.
 	 * 
+	 * @param partyID ID of the Party to update.
 	 * @param firstName First Name of Party.
 	 * @param middleName Last Name of Party.
 	 * @param lastName Last Name of Party.
@@ -177,9 +179,142 @@ public class DBUtilities {
 		return parties;
 	}
 	
+	/**
+	 * Inserts a new case into the case database table.
+	 * 
+	 * @param caseName The name the case is represented by.
+	 * @param clientID The party ID of the client for this case.
+	 * @param opposistionID The party ID of the opposition.
+	 * @param start The starting date of the case.
+	 * @param end The ending date of the case.
+	 * @param description A description of the case.
+	 * @param note A special note about the case.
+	 * @throws SQLException if an error occurs inserting
+	 * 		the new case into the database.
+	 */
+	public void insertLegalCase(String caseName, int clientID, int opposistionID, java.util.Date start, java.util.Date end, String description, String note) throws SQLException {
+		String update = "INSERT INTO " + LegalCaseTable.TABLE_NAME + "(" + LegalCaseTable.COLUMN_CASE_NAME + ", " + LegalCaseTable.COLUMN_CLIENT_ID + ", " + LegalCaseTable.COLUMN_OPPOSITION_ID
+				+ " , " + LegalCaseTable.COLUMN_START_DATE + ", " + LegalCaseTable.COLUMN_END_DATE + ", " + LegalCaseTable.COLUMN_DESCRIPTION + ", " + LegalCaseTable.COLUMN_NOTE + ") "
+				+ "VALUES (" + "\'" + caseName + "\'" + ", " + clientID + ", " + opposistionID + ", \'" + (new java.sql.Date(start.getTime())) + "\', \'" + (new java.sql.Date(end.getTime())) + "\', " +  "\'" + description + "\'" + ", " + "\'" + note + "\'" + ")";
+
+		driver.executeUpdate(update);
+	}
 	
+	/**
+	 * Updates Case information in the case database
+	 * table.
+	 * 
+	 * @param caseID ID of the Case to update.
+	 * @param name First Name of Party.
+	 * @param clientID ID of the client.
+	 * @param opposistionID ID of the opposition.
+	 * @param start The begin date of the case.
+	 * @param end The end date of the case.
+	 * @param description Description of the case.
+	 * @param note Note about Case.
+	 * @throws SQLException if an error occurs updating
+	 * 		Case information into database.
+	 */
+	public void updateLegalCase(int caseID, String caseName, int clientID, int opposistionID, java.util.Date start, java.util.Date end, String description, String note) throws SQLException {
+		String update = "UPDATE " + LegalCaseTable.TABLE_NAME + " SET "
+				+ LegalCaseTable.COLUMN_CASE_NAME + " = \'" + caseName + "\'," 
+				+ LegalCaseTable.COLUMN_CLIENT_ID + " = " + clientID + "," 
+				+ LegalCaseTable.COLUMN_OPPOSITION_ID + " = " + opposistionID + ","
+				+ LegalCaseTable.COLUMN_START_DATE + " = \'" + new java.sql.Date(start.getTime()) + "\',"
+				+ LegalCaseTable.COLUMN_END_DATE + " = \'" + new java.sql.Date(end.getTime()) + "\',"
+				+ LegalCaseTable.COLUMN_DESCRIPTION + " = \'"+ description + "\',"
+				+ LegalCaseTable.COLUMN_NOTE + " = \'" + note + "\'"
+				+ " WHERE " + LegalCaseTable.COLUMN_ID + " = " + caseID;
+		
+		driver.executeUpdate(update);
+	}
 	
-	// TO BE PHASED OUT. USING PARTY METHODOLOGY OVER CASE METHODOLOGY
+	/**
+	 * Gets a specific Case object from the case
+	 * database table.
+	 * 
+	 * @param caseID ID of case to get info for.
+	 * @return Case object with information about case.
+	 * @throws SQLException if an error occurs getting case info.
+	 */
+	public LegalCase getLegalCase(int caseID) throws SQLException {
+		String query = "SELECT "+ LegalCaseTable.COLUMN_ID + ", " + LegalCaseTable.COLUMN_CASE_NAME + ", " + LegalCaseTable.COLUMN_CLIENT_ID + " , " + LegalCaseTable.COLUMN_OPPOSITION_ID 
+				+ ", " + LegalCaseTable.COLUMN_START_DATE + ", " +LegalCaseTable.COLUMN_END_DATE + " , " + LegalCaseTable.COLUMN_DESCRIPTION + ", " + PartyTable.COLUMN_NOTE 
+				+ " FROM " + LegalCaseTable.TABLE_NAME
+				+ " WHERE " + LegalCaseTable.COLUMN_ID + " = " + caseID;
+		
+		ResultSet rs = driver.executeQuery(query);
+		LegalCase lC = null;
+		
+		if (rs.next()) {
+			lC = new LegalCase(rs.getInt(LegalCaseTable.COLUMN_ID));
+			lC.setName(rs.getString(LegalCaseTable.COLUMN_CASE_NAME));
+			lC.setClientID(rs.getInt(LegalCaseTable.COLUMN_CLIENT_ID));
+			lC.setOppositionID(rs.getInt(LegalCaseTable.COLUMN_OPPOSITION_ID));
+			lC.setStart(rs.getDate(LegalCaseTable.COLUMN_START_DATE));
+			lC.setEnd(rs.getDate(LegalCaseTable.COLUMN_END_DATE));
+			lC.setDescription(rs.getString(LegalCaseTable.COLUMN_DESCRIPTION));
+			lC.setNote(rs.getString(LegalCaseTable.COLUMN_NOTE));
+			
+		} else {
+			throw new SQLException("No Case ID (" + caseID + ") was found.");
+		}
+		
+		driver.close(rs);
+		
+		return lC;
+	}
+	
+	/**
+	 * Deletes a specific case from the case database.
+	 * 
+	 * @param caseID specific ID of case to delete.
+	 * @throws SQLException if an error occurs deleting case.
+	 */
+	public void deleteLegalCase(int caseID) throws SQLException {
+		String update = "DELETE FROM " + LegalCaseTable.TABLE_NAME
+				+ " WHERE " + LegalCaseTable.COLUMN_ID + " = " + caseID;
+		
+		driver.executeUpdate(update);
+	}
+	
+	/**
+	 * Retrieves all cases from the database.
+	 * 
+	 * @return List of Case objects.
+	 * @throws SQLException if an error occurs getting
+	 * 		case info from the database.
+	 */
+	public List<LegalCase> getAllLegalCases() throws SQLException {
+		List<LegalCase> legalCases = new ArrayList<LegalCase>();
+		
+		String query = "SELECT "+ LegalCaseTable.COLUMN_ID + ", " + LegalCaseTable.COLUMN_CASE_NAME + ", " + LegalCaseTable.COLUMN_CLIENT_ID + " , " + LegalCaseTable.COLUMN_OPPOSITION_ID 
+				+ ", " + LegalCaseTable.COLUMN_START_DATE + ", " +LegalCaseTable.COLUMN_END_DATE + " , " + LegalCaseTable.COLUMN_DESCRIPTION + ", " + PartyTable.COLUMN_NOTE 
+				+ " FROM " + LegalCaseTable.TABLE_NAME;
+		
+		ResultSet rs = driver.executeQuery(query);
+		LegalCase lC = null;
+		
+		while (rs.next()) {
+			lC = new LegalCase(rs.getInt(LegalCaseTable.COLUMN_ID));
+			
+			lC.setName(rs.getString(LegalCaseTable.COLUMN_CASE_NAME));
+			lC.setClientID(rs.getInt(LegalCaseTable.COLUMN_CLIENT_ID));
+			lC.setOppositionID(rs.getInt(LegalCaseTable.COLUMN_OPPOSITION_ID));
+			lC.setStart(rs.getDate(LegalCaseTable.COLUMN_START_DATE));
+			lC.setEnd(rs.getDate(LegalCaseTable.COLUMN_END_DATE));
+			lC.setDescription(rs.getString(LegalCaseTable.COLUMN_DESCRIPTION));
+			lC.setNote(rs.getString(LegalCaseTable.COLUMN_NOTE));
+			
+			legalCases.add(lC);
+		}
+		
+		driver.close(rs);
+		
+		return legalCases;
+	}
+	
+	// CASE METHODS TO BE PHASED OUT. USING PARTY METHODOLOGY OVER CASE METHODOLOGY
 	
 	/**
 	 * Inserts a new Client into the client database

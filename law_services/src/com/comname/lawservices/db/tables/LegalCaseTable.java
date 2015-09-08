@@ -15,6 +15,9 @@ public class LegalCaseTable {
 	/** Name of Case ID column. */
 	public final static String COLUMN_ID = "case_id";
 	
+	/** Name of the Case Name column. */
+	public final static String COLUMN_CASE_NAME = "name";
+	
 	/** Name of Client ID column. */
 	public final static String COLUMN_CLIENT_ID = "client_id";
 	

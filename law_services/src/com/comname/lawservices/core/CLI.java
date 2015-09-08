@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 import com.comname.lawservices.db.DBUtilities;
 import com.comname.lawservices.models.Client;
+import com.comname.lawservices.models.LegalCase;
 import com.comname.lawservices.models.Party;
 
 /**
@@ -46,7 +47,10 @@ public class CLI {
 			+ "\n\t1) Insert Party"
 			+ "\n\t2) Update Party"
 			+ "\n\t3) See All Parties"
-			+ "\n\t4) Delete Party"
+			+ "\n\t5) Insert Legal Case"
+			+ "\n\t6) Update Legal Case"
+			+ "\n\t7) See All Legal Cases"
+			+ "\n\t8) Delete Legal Case"
 			+ "\n\n\t" + sentinelValue + " To Exit";
 	
 	/** Goodbye String printed at program end. */
@@ -76,6 +80,14 @@ public class CLI {
 				displayParties();				
 			} else if (command.equals(4)) {
 				deleteParty();
+			} else if (command.equals(5)) {
+				storeLegalCase();
+			} else if (command.equals(6)) {
+				updateLegalCase();
+			} else if (command.equals(7)) {
+				displayLegalCases();
+			} else if (command.equals(8)) {
+				deleteLegalCase();
 			} else {
 				System.out.println("Unsupported Command Value: " + command);
 			}
@@ -120,6 +132,329 @@ public class CLI {
 			
 		} catch (NumberFormatException e) {
 			System.out.println("Unexpected input: " + mainInput);
+		}
+	}
+	
+	/**
+	 * Command procedure for storing a new Legal Case.
+	 */
+	private void storeLegalCase() {
+		System.out.println("Enter Legal Case Name: ");
+		String caseName = in.nextLine();
+		
+		int clientID = Constants.NULL_ID;
+		
+		while (clientID == Constants.NULL_ID) {
+			try {
+				System.out.println("Enter Client ID: ");
+				clientID = in.nextInt();
+				
+				in.nextLine();// Used to eat unused token.
+			} catch (InputMismatchException e) {
+				System.out.println("\n Improper Input While Entering Client ID, enter numerals [0-9] only.\n");
+				in.nextLine();
+			}
+			
+			try {
+				System.out.println("Client: \n" + dbUtil.getParty(clientID) + "\n\n(y to continue)");
+				String cont = in.nextLine();
+				
+				if (!"y".equalsIgnoreCase(cont)) {
+					clientID = Constants.NULL_ID;
+				}
+				
+			} catch (SQLException e) {
+				System.out.println("Could not retrieve Party with ID (" + clientID + ") : " + e.getMessage());
+				clientID = Constants.NULL_ID;
+			}
+		}
+		
+		int oppID = Constants.NULL_ID;
+		
+		while (oppID == Constants.NULL_ID) {
+			try {
+				System.out.println("Enter Opposition ID: ");
+				oppID = in.nextInt();
+				
+				in.nextLine();// Used to eat unused token.
+			} catch (InputMismatchException e) {
+				System.out.println("\n Improper Input While Entering Opposistion ID, enter numerals [0-9] only.\n");
+				in.nextLine();
+			}
+			
+			try {
+				System.out.println("Opposistion: \n" + dbUtil.getParty(oppID) + "\n\n(y to continue)");
+				String cont = in.nextLine();
+				
+				if (!"y".equalsIgnoreCase(cont)) {
+					oppID = Constants.NULL_ID;
+				}
+				
+			} catch (SQLException e) {
+				System.out.println("Could not retrieve Party with ID (" + oppID + ") : " + e.getMessage());
+				oppID = Constants.NULL_ID;
+			}
+		}
+		
+
+		Date start = new Date(0); // Defaults to "the epoch" (standard Java base time).
+		
+		try {
+			System.out.println("Enter Legal Case Start Year: ");
+			int startYear = in.nextInt();
+			
+			in.nextLine(); // Used to eat unused token.
+			
+			System.out.println("Enter Legal Case Start Month: ");
+			int startMonth = in.nextInt();
+			startMonth -= 1; // Convert from user's (1-12) format to Java's (0-11) format.
+			
+			in.nextLine(); // Used to eat unused token.
+			
+			System.out.println("Enter Legal Case Start Day: ");
+			int startDay = in.nextInt();
+			
+			in.nextLine(); // Used to eat unused token.
+			
+			Calendar c = Calendar.getInstance();
+			c.set(startYear, startMonth, startDay);
+			start.setTime(c.getTimeInMillis());
+			
+		} catch (InputMismatchException e) {
+			System.out.println("\n Improper Input While Entering Start Date Information, using default. Please update later.\n");
+			in.nextLine();
+		}
+		
+		Date end = new Date(0); // Defaults to "the epoch" (standard Java base time).
+		
+		try {
+			System.out.println("Enter Legal Case End Year: ");
+			int endYear = in.nextInt();
+			
+			in.nextLine(); // Used to eat unused token.
+			
+			System.out.println("Enter Legal Case End Month: ");
+			int endMonth = in.nextInt();
+			endMonth -= 1; // Convert from user's (1-12) format to Java's (0-11) format.
+			
+			in.nextLine(); // Used to eat unused token.
+			
+			System.out.println("Enter Legal Case End Day: ");
+			int endDay = in.nextInt();
+			
+			in.nextLine(); // Used to eat unused token.
+			
+			Calendar c = Calendar.getInstance();
+			c.set(endYear, endMonth, endDay);
+			end.setTime(c.getTimeInMillis());
+			
+		} catch (InputMismatchException e) {
+			System.out.println("\n Improper Input While Entering End Date Information, using default. Please update later.\n");
+			in.nextLine();
+		}
+		
+		System.out.println("Enter Legal Case Description: ");
+		String description = in.nextLine();
+		
+		System.out.println("Enter a short note about the Legal Case: ");
+		String note = in.nextLine();
+		
+		try {
+			dbUtil.insertLegalCase(caseName, clientID, oppID, start, end, description, note);
+			System.out.println("Sucessfully Added Legal Case");
+		} catch (SQLException e) {
+			System.out.println("Could not add new Legal Case (contact Sys Admin): " + e.getMessage());
+		}
+	}
+	
+	/**
+	 * Command procedure for updating a Legal Case.
+	 */
+	private void updateLegalCase() {
+		
+		System.out.println("Enter Legal Case ID of Legal Case to update:");
+		int legalCaseID = in.nextInt();
+		
+		// Used to eat unused token.
+		in.nextLine();
+		
+		try {
+			System.out.println("Current Legal Case Info: \n" + dbUtil.getLegalCase(legalCaseID));
+		
+			
+			System.out.println("Enter Legal Case Name: ");
+			String caseName = in.nextLine();
+			
+			int clientID = Constants.NULL_ID;
+			
+			while (clientID == Constants.NULL_ID) {
+				try {
+					System.out.println("Enter Client ID: ");
+					clientID = in.nextInt();
+					
+					in.nextLine();// Used to eat unused token.
+				} catch (InputMismatchException e) {
+					System.out.println("\n Improper Input While Entering Client ID, enter numerals [0-9] only.\n");
+					in.nextLine();
+				}
+				
+				try {
+					System.out.println("Client: \n" + dbUtil.getParty(clientID) + "\n\n(y to continue)");
+					String cont = in.nextLine();
+					
+					if (!"y".equalsIgnoreCase(cont)) {
+						clientID = Constants.NULL_ID;
+					}
+					
+				} catch (SQLException e) {
+					System.out.println("Could not retrieve Party with ID (" + clientID + ") : " + e.getMessage());
+					clientID = Constants.NULL_ID;
+				}
+			}
+			
+			int oppID = Constants.NULL_ID;
+			
+			while (oppID == Constants.NULL_ID) {
+				try {
+					System.out.println("Enter Opposition ID: ");
+					oppID = in.nextInt();
+					
+					in.nextLine();// Used to eat unused token.
+				} catch (InputMismatchException e) {
+					System.out.println("\n Improper Input While Entering Opposistion ID, enter numerals [0-9] only.\n");
+					in.nextLine();
+				}
+				
+				try {
+					System.out.println("Opposistion: \n" + dbUtil.getParty(oppID) + "\n\n(y to continue)");
+					String cont = in.nextLine();
+					
+					if (!"y".equalsIgnoreCase(cont)) {
+						oppID = Constants.NULL_ID;
+					}
+					
+				} catch (SQLException e) {
+					System.out.println("Could not retrieve Party with ID (" + oppID + ") : " + e.getMessage());
+					oppID = Constants.NULL_ID;
+				}
+			}
+			
+	
+			Date start = new Date(0); // Defaults to "the epoch" (standard Java base time).
+			
+			try {
+				System.out.println("Enter Legal Case Start Year: ");
+				int startYear = in.nextInt();
+				
+				in.nextLine(); // Used to eat unused token.
+				
+				System.out.println("Enter Legal Case Start Month: ");
+				int startMonth = in.nextInt();
+				startMonth -= 1; // Convert from user's (1-12) format to Java's (0-11) format.
+				
+				in.nextLine(); // Used to eat unused token.
+				
+				System.out.println("Enter Legal Case Start Day: ");
+				int startDay = in.nextInt();
+				
+				in.nextLine(); // Used to eat unused token.
+				
+				Calendar c = Calendar.getInstance();
+				c.set(startYear, startMonth, startDay);
+				start.setTime(c.getTimeInMillis());
+				
+			} catch (InputMismatchException e) {
+				System.out.println("\n Improper Input While Entering Start Date Information, using default. Please update later.\n");
+				in.nextLine();
+			}
+			
+			Date end = new Date(0); // Defaults to "the epoch" (standard Java base time).
+			
+			try {
+				System.out.println("Enter Legal Case End Year: ");
+				int endYear = in.nextInt();
+				
+				in.nextLine(); // Used to eat unused token.
+				
+				System.out.println("Enter Legal Case End Month: ");
+				int endMonth = in.nextInt();
+				endMonth -= 1; // Convert from user's (1-12) format to Java's (0-11) format.
+				
+				in.nextLine(); // Used to eat unused token.
+				
+				System.out.println("Enter Legal Case End Day: ");
+				int endDay = in.nextInt();
+				
+				in.nextLine(); // Used to eat unused token.
+				
+				Calendar c = Calendar.getInstance();
+				c.set(endYear, endMonth, endDay);
+				end.setTime(c.getTimeInMillis());
+				
+			} catch (InputMismatchException e) {
+				System.out.println("\n Improper Input While Entering End Date Information, using default. Please update later.\n");
+				in.nextLine();
+			}
+			
+			System.out.println("Enter Legal Case Description: ");
+			String description = in.nextLine();
+			
+			System.out.println("Enter a short note about the Legal Case: ");
+			String note = in.nextLine();
+			
+			try {
+				dbUtil.updateLegalCase(legalCaseID, caseName, clientID, oppID, start, end, description, note);
+				System.out.println("Sucessfully Updated Legal Case");
+			} catch (SQLException e) {
+				System.out.println("Could not update Legal Case with ID (" + legalCaseID + ") (contact Sys Admin): " + e.getMessage());
+			}
+		} catch (SQLException e) {
+			System.out.println("Could not retrieve Legal Case with ID (" + legalCaseID + ") : " + e.getMessage());
+		}
+	}
+	
+	/**
+	 * Displays all Legal cases recorded 
+	 * in the system, one at a time.
+	 */
+	private void displayLegalCases() {
+		System.out.println("Legal Cases will be displayed one at a time. Press enter to continue.");
+		
+		try {
+			for (LegalCase legalCase : dbUtil.getAllLegalCases()) {
+				System.out.println("\n" + legalCase);
+				in.nextLine();
+			}
+		} catch (SQLException e) {
+			System.out.println("Could not retrieve legal cases from system (Contact Sys Admin): " + e.getMessage());
+		}
+	}
+	
+	/**
+	 * Command procedure for deleting a legal case.
+	 */
+	private void deleteLegalCase() {
+		System.out.println("Enter ID of Legal Case to delete: ");
+		int legalCaseID = in.nextInt();
+		
+		// Used to eat unused token.
+		in.nextLine();
+		
+		try {
+			System.out.println("Delete Legal Case? (y to continue) \n" + dbUtil.getLegalCase(legalCaseID));
+			String cont = in.nextLine();
+			
+			if ("y".equalsIgnoreCase(cont)) {
+				try {
+					dbUtil.deleteParty(legalCaseID);
+					System.out.println("Sucessfully deleted Legal Case.");
+				} catch (SQLException e) {
+					System.out.println("Could not delete Legal Case with ID (" + legalCaseID + ") : " + e.getMessage());
+				}
+			}
+			
+		} catch (SQLException e) {
+			System.out.println("Could not retrieve Legal Case with ID (" + legalCaseID + ") : " + e.getMessage());
 		}
 	}
 	

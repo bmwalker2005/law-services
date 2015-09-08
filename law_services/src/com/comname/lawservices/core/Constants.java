@@ -28,4 +28,8 @@ public class Constants {
 	
 	/** Database Driver Class Name. */
 	public static final String DB_DRIVER_CLASS_NAME = "com.mysql.jdbc.Driver";
+	
+	
+	/** ID representing a non existent database entry. */
+	public static final Integer NULL_ID = new Integer(-1);
 }
