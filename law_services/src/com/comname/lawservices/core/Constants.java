@@ -31,5 +31,9 @@ public class Constants {
 	
 	
 	/** ID representing a non existent database entry. */
-	public static final Integer NULL_ID = new Integer(-1);
+	public static final Integer NULL_ID = new Integer(0);
+	
+	/** Max number of bytes a file stored in the db can be. 16 MB due to Medium Blob. **/
+	public static final int MAX_FILE_SIZE = 16777215;
+
 }

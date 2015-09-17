@@ -7,10 +7,12 @@ import java.util.List;
 
 import com.comname.lawservices.core.Constants;
 import com.comname.lawservices.db.tables.ClientTable;
+import com.comname.lawservices.db.tables.FileTable;
 import com.comname.lawservices.db.tables.LegalCaseTable;
 import com.comname.lawservices.db.tables.PartyTable;
 import com.comname.lawservices.models.Client;
 import com.comname.lawservices.models.LegalCase;
+import com.comname.lawservices.models.LegalFile;
 import com.comname.lawservices.models.Party;
 
 /**
@@ -312,6 +314,120 @@ public class DBUtilities {
 		driver.close(rs);
 		
 		return legalCases;
+	}
+	
+	/**
+	 * Inserts a new File into the file database
+	 * table.
+	 * 
+	 * @param name Name of the file.
+	 * @param data Bytes to be uploaded.
+	 * @param clientID ID of client this file belongs to
+	 * 		[if applicable].
+	 * @param caseID ID of case this file belongs to
+	 * 		[if applicable].
+	 * @throws SQLException if an error occurs inserting
+	 * 		File information into database.
+	 */
+	public void insertFile(String name, byte[] data, int clientID, int caseID) throws SQLException {
+
+		String update = "INSERT INTO " + FileTable.TABLE_NAME + "(" + FileTable.COLUMN_NAME + ", " + FileTable.COLUMN_UPDATED + " , " + FileTable.COLUMN_DATA 
+				+ ", " + FileTable.COLUMN_CLIENT_ID + ", " + FileTable.COLUMN_CASE_ID + ") "
+				+ "VALUES (?,?,?,?,?)";
+
+		
+		java.sql.PreparedStatement pS = driver.getPreparedStatement(update);
+
+		pS.setString(1, name);
+		pS.setDate(2, new java.sql.Date(new java.util.Date().getTime()));
+		pS.setBytes(3, data);
+		pS.setInt(4, clientID);
+		pS.setInt(5, caseID);
+		
+		pS.executeUpdate();
+		
+		driver.close(pS);
+	}
+	
+	/**
+	 * Gets a specific File object from the file
+	 * database table.
+	 * 
+	 * @param fileID ID of file to get info for.
+	 * @return file object with information about file.
+	 * @throws SQLException if an error occurs getting case info.
+	 */
+	public LegalFile getFile(int fileID) throws SQLException {
+		String query = "SELECT "+ FileTable.COLUMN_ID + ", " + FileTable.COLUMN_NAME + ", " + FileTable.COLUMN_UPDATED + " , " + FileTable.COLUMN_DATA 
+				+ ", " + FileTable.COLUMN_CASE_ID + ", " + FileTable.COLUMN_CLIENT_ID
+				+ " FROM " + FileTable.TABLE_NAME
+				+ " WHERE " + FileTable.COLUMN_ID + " = " + fileID;
+		
+		ResultSet rs = driver.executeQuery(query);
+		LegalFile lF = null;
+		
+		if (rs.next()) {
+			lF = new LegalFile(rs.getInt(LegalCaseTable.COLUMN_ID));
+			lF.setName(rs.getString(FileTable.COLUMN_NAME));
+			lF.setUpdated(rs.getDate(FileTable.COLUMN_UPDATED));
+			lF.setData(rs.getBytes(FileTable.COLUMN_DATA));
+			lF.setCaseID(rs.getInt(FileTable.COLUMN_CASE_ID));
+			lF.setClientID(rs.getInt(FileTable.COLUMN_CLIENT_ID));
+			
+		} else {
+			throw new SQLException("No File ID (" + fileID + ") was found.");
+		}
+		
+		driver.close(rs);
+		
+		return lF;
+	}
+	
+	/**
+	 * Retrieves all Files from the database.
+	 * 
+	 * @return List of File objects.
+	 * @throws SQLException if an error occurs getting
+	 * 		File info from the database.
+	 */
+	public List<LegalFile> getAllFiles() throws SQLException {
+		List<LegalFile> files = new ArrayList<LegalFile>();
+		
+		String query = "SELECT "+ FileTable.COLUMN_ID + ", " + FileTable.COLUMN_NAME + ", " + FileTable.COLUMN_UPDATED + " , " + FileTable.COLUMN_DATA
+				+ ", " + FileTable.COLUMN_CLIENT_ID + ", " + FileTable.COLUMN_CASE_ID
+				+ " FROM " + FileTable.TABLE_NAME;
+		
+		ResultSet rs = driver.executeQuery(query);
+		LegalFile lF = null;
+		
+		while (rs.next()) {
+			lF = new LegalFile(rs.getInt(FileTable.COLUMN_ID));
+			
+			lF.setName(rs.getString(FileTable.COLUMN_NAME));
+			lF.setUpdated(rs.getDate(FileTable.COLUMN_UPDATED));
+			lF.setData(rs.getBytes(FileTable.COLUMN_DATA));
+			lF.setClientID(rs.getInt(FileTable.COLUMN_CLIENT_ID));
+			lF.setCaseID(rs.getInt(FileTable.COLUMN_CASE_ID));
+				
+			files.add(lF);
+		}
+		
+		driver.close(rs);
+		
+		return files;
+	}
+	
+	/**
+	 * Deletes a specific file from the file database.
+	 * 
+	 * @param fileID specific ID of file to delete.
+	 * @throws SQLException if an error occurs deleting file.
+	 */
+	public void deleteFile(int fileID) throws SQLException {
+		String update = "DELETE FROM " + FileTable.TABLE_NAME
+				+ " WHERE " + FileTable.COLUMN_ID + " = " + fileID;
+		
+		driver.executeUpdate(update);
 	}
 	
 	// CASE METHODS TO BE PHASED OUT. USING PARTY METHODOLOGY OVER CASE METHODOLOGY

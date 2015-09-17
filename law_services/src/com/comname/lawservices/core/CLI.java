@@ -1,5 +1,8 @@
 package com.comname.lawservices.core;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
@@ -9,6 +12,7 @@ import java.util.Scanner;
 import com.comname.lawservices.db.DBUtilities;
 import com.comname.lawservices.models.Client;
 import com.comname.lawservices.models.LegalCase;
+import com.comname.lawservices.models.LegalFile;
 import com.comname.lawservices.models.Party;
 
 /**
@@ -51,6 +55,10 @@ public class CLI {
 			+ "\n\t6) Update Legal Case"
 			+ "\n\t7) See All Legal Cases"
 			+ "\n\t8) Delete Legal Case"
+			+ "\n\t9) Insert File"
+			+ "\n\t10) Get File"
+			+ "\n\t11) See All Files"
+			+ "\n\t12) Delete File"
 			+ "\n\n\t" + sentinelValue + " To Exit";
 	
 	/** Goodbye String printed at program end. */
@@ -88,6 +96,14 @@ public class CLI {
 				displayLegalCases();
 			} else if (command.equals(8)) {
 				deleteLegalCase();
+			} else if (command.equals(9)) {
+				storeFile();
+			} else if (command.equals(10)) {
+				getLegalFile();
+			} else if (command.equals(11)) {
+				displayFiles();
+			} else if (command.equals(12)) {
+				deleteFile();
 			} else {
 				System.out.println("Unsupported Command Value: " + command);
 			}
@@ -132,6 +148,175 @@ public class CLI {
 			
 		} catch (NumberFormatException e) {
 			System.out.println("Unexpected input: " + mainInput);
+		}
+	}
+	
+	/**
+	 * Command procedure for storing a new file.
+	 */
+	private void storeFile() {
+		
+		java.io.File f = null;
+		
+		while (f == null) {
+			System.out.println("Enter path to file: ");
+			String fPath = in.nextLine();
+			
+			f = new java.io.File(fPath);
+			
+			if ((!f.exists()) || (f.isHidden())) {
+				System.out.println("Could not find file: (" + fPath + ") Please enter a correct path.\n");
+				
+				f = null;
+			} else if (f.isDirectory()) {
+				System.out.println("Can not upload a directory: (" + fPath + ") Please enter a correct path to a File.\n");
+				
+				f = null;
+			} else if (f.isFile()) {
+				f = f.getAbsoluteFile();
+			}
+		}
+		
+		byte[] rawData = new byte[Constants.MAX_FILE_SIZE];
+		int fSize = 0;
+		
+		java.io.FileInputStream fInputStream = null;
+		
+		try {
+			// ONLY ONE CALL TO READ OR YOU HAVE TO MAKE A NEW FILE INPUT STREAM
+			fInputStream = new java.io.FileInputStream(f);
+			fSize = fInputStream.read(rawData);
+			
+			if (fSize >= Constants.MAX_FILE_SIZE)
+				throw new IOException("File too large");
+			
+			byte[] trueData = new byte[fSize];
+			
+			for (int i = 0; i < fSize; i++) {
+				trueData[i] = rawData[i];
+			}
+			
+			dbUtil.insertFile(f.getName(), trueData, Constants.NULL_ID, Constants.NULL_ID);
+			
+			System.out.println("Successfully stored file of size: " + fSize);
+
+		} catch (FileNotFoundException e) {
+			System.out.println("Path to file was inaccurate, no file found: " + e.getMessage());
+		} catch (IOException e) {
+			System.out.println("Could not read file (contact Sys Admin): " + e.getMessage());
+		} catch (SQLException e) {
+			System.out.println("Could not add new File (contact Sys Admin): " + e.getMessage());
+		} finally {
+			if (fInputStream != null) {
+				try {
+					fInputStream.close();
+				} catch (IOException e) {
+					// Nothing to be done
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Command procedure for getting a file.
+	 */
+	private void getLegalFile() {
+		System.out.println("Enter file ID:" );
+		int fileID = in.nextInt();
+		
+		// Used to eat unused token.
+		in.nextLine();
+		
+		java.io.FileOutputStream fOS = null;
+		
+		try {
+			LegalFile lF = dbUtil.getFile(fileID);
+			
+			System.out.println(lF);
+			
+			String fPath = null;
+			
+			while (fPath == null) {
+				System.out.println("Enter path to save file to: ");
+				fPath = in.nextLine();
+	
+				File dir = new File(fPath);
+				
+				if (!dir.isDirectory()) {
+					System.out.println("Path must lead to a valid folder.");
+					fPath = null;
+				}
+			}
+			
+			java.io.File nFile = new java.io.File(fPath + lF.getName());
+			
+			System.out.println("File created: " + nFile.createNewFile());
+			
+			fOS = new java.io.FileOutputStream(nFile);
+			fOS.write(lF.getData());
+			
+			System.out.println("File written");
+			
+		} catch (SQLException e) {
+			System.out.println("Could not get File (contact Sys Admin): " + e.getMessage());
+		} catch (FileNotFoundException e) {
+			System.out.println("File could not be found (contact Sys Admin): " + e.getMessage());
+		} catch (IOException e) {
+			System.out.println("File could not be created (contact Sys Admin): " + e.getMessage());
+		} finally {
+			if (fOS != null) {
+				try {
+					fOS.close();
+				} catch (IOException e) {
+					// Nothing to be done
+				}
+			}
+		}
+		
+		
+	}
+	
+	/** 
+	 * Method for displaying all legal files.
+	 */
+	private void displayFiles() {
+		System.out.println("Files will be displayed one at a time. Press enter to continue.");
+		
+		try {
+			for (LegalFile file : dbUtil.getAllFiles()) {
+				System.out.println("\n" + file);
+				in.nextLine();
+			}
+		} catch (SQLException e) {
+			System.out.println("Could not retrieve files from system (Contact Sys Admin): " + e.getMessage());
+		}
+	}
+	
+	/**
+	 * Command procedure for deleting a file.
+	 */
+	private void deleteFile() {
+		System.out.println("Enter ID of File to delete: ");
+		int fileID = in.nextInt();
+		
+		// Used to eat unused token.
+		in.nextLine();
+		
+		try {
+			System.out.println("Delete File? (y to continue) \n" + dbUtil.getFile(fileID));
+			String cont = in.nextLine();
+			
+			if ("y".equalsIgnoreCase(cont)) {
+				try {
+					dbUtil.deleteFile(fileID);
+					System.out.println("Sucessfully deleted File.");
+				} catch (SQLException e) {
+					System.out.println("Could not delete File with ID (" + fileID + ") : " + e.getMessage());
+				}
+			}
+			
+		} catch (SQLException e) {
+			System.out.println("Could not retrieve File with ID (" + fileID + ") : " + e.getMessage());
 		}
 	}
 	
@@ -446,7 +631,7 @@ public class CLI {
 			
 			if ("y".equalsIgnoreCase(cont)) {
 				try {
-					dbUtil.deleteParty(legalCaseID);
+					dbUtil.deleteLegalCase(legalCaseID);
 					System.out.println("Sucessfully deleted Legal Case.");
 				} catch (SQLException e) {
 					System.out.println("Could not delete Legal Case with ID (" + legalCaseID + ") : " + e.getMessage());

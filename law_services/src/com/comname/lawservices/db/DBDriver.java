@@ -2,6 +2,7 @@ package com.comname.lawservices.db;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -88,6 +89,19 @@ public class DBDriver {
 	}
 	
 	/**
+	 * Gets a Prepared Statement from the database using
+	 * the statement inputed.
+	 * 
+	 * @param statement to create prepared statement with.
+	 * @return PreparedStatement to make database update.
+	 * @throws SQLException If an error occurs with the
+	 * 		prepared statement.
+	 */
+	public PreparedStatement getPreparedStatement(String statement) throws SQLException {
+		return this.getConn().prepareStatement(statement);
+	}
+	
+	/**
 	 * Gets the SQL Connection by creating a new connection.
 	 * 
 	 * @return new SQL Connection.
@@ -120,7 +134,7 @@ public class DBDriver {
 	 * @throws SQLException if an error occurs closing
 	 * 		statement.
 	 */
-	private void close(Statement statement) throws SQLException {
+	public void close(Statement statement) throws SQLException {
 		if (statement != null) {
 			close(statement.getConnection());
 			statement.close();
